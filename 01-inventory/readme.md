@@ -72,3 +72,107 @@ host_key_checking = False
 deprecation_warnings = False
 ```
 以上面的例子來說，Ansible 會關閉 deprecated feature 的警告訊息，以及連線至遠端主機時跳出的 key checking。
+
+此外，`ansible.cfg` 還能夠幫助我們複寫 Inventory 的選項預設值，`ansible_port:remote_port` 表示 `ansible.cfg` 的 `remote_port` 選項可以替換 Inventory 中 `ansible_port` 選項的預設值：
+- `ansible_port:remote_port`
+- `ansible_user:remote_user`
+- `ansible_private_key_file:private_key_file`
+- `ansible_shell_type:executable`
+
+### 分組
+Inventory 提供分組的功能，讓我們能夠套用設定至指定的群組中，而不是直接套用到 Inventory 中描述的所有主機。讓我們稍微改寫一下先前的 Inventory 範例腳本：
+```yaml
+vmGroup:
+  children:
+    webservers:
+      hosts:
+        server01:
+          ansible_host: <HOST_IP_1>
+          ansible_port: 22
+          ansible_user: <USER>
+          ansible_password: <PASSWORD>
+          ansible_private_key_file: <FILE>
+    dbs:
+      hosts:
+        db01:
+          ansible_host: <HOST_IP_2>
+          ansible_port: 22
+          ansible_user: <USER>
+          ansible_password: <PASSWORD>
+          ansible_private_key_file: <FILE>
+```
+看到上方的範例，`vmGroup` 有兩個子群組 `webservers` 以及 `dbs`，這兩個子群組中分別又管理了一台主機（當然，真實的情況會在複雜一些，每個群組都可能管理著數個主機）。
+我們可以依序執行下列命令，觀察不同命令影響著哪些主機：
+```
+# 影響 server01 與 db01
+$ ansible vmGroup -m ping -i inventory.yaml
+# 影響 server01
+$ ansible webservers -m ping -i inventory.yaml
+# 影響 db01
+$ ansible dbs -m ping -i inventory.yaml
+```
+
+### 使用 `variables` 精簡 Inventory
+
+觀察上方的 Inventory 範例不難發現 server01 與 db01 之間的重複欄位過多，為了精簡 Inventory file，我們可以將多數重複的資訊設定為變數：
+```yaml
+all:
+  vars:
+    ansible_user: <USER_NAME>
+    ansible_password: <PASSWORD>
+vmGroup:
+  children:
+    webservers:
+      hosts:
+        vm01:
+          ansible_host: <HOST_IP_1>
+          ansible_network_os: ubuntu
+    dbs:
+      hosts:
+        vm02:
+          ansible_host: <HOST_IP_2>
+          ansible_network_os: ubuntu
+```
+參考上面的範例，我們將變數的作用域設置為 `all`，也就代表 `ansible_user` 與 `ansible_password` 這兩個變數可以作用在 `vmGroup`、`servers` 以及 `dbs` 群組。
+
+> 補充：
+> 為了驗證變數的作用域，也可以嘗試將 `all` 修改為 `servers` 或是 `dbs`，並且執行：
+> ```
+> $ ansible vmGroup -m ping -i inventory.yaml
+> ```
+> 觀察不同作用域下執行結果是否符合預期。
+
+剛剛我們在範例中利用變數刪去了多餘的設定，如果我們不需要為群組中的主機設置別名，我們還可以再次精簡 Inventory file：
+```yaml
+all:
+  vars:
+    ansible_user: <USER_NAME>
+    ansible_password: <PASSWORD>
+vmGroup:
+  children:
+    webservers:
+      hosts:
+        <HOST_IP_1>:
+    dbs:
+      hosts:
+        <HOST_IP_2>:
+```
+當然，如果配合 `ansible.cfg` 覆蓋預設值，我們的 Inventory 更可以精簡成：
+```yaml
+vmGroup:
+  children:
+    webservers:
+      hosts:
+        <HOST_IP_1>:
+    dbs:
+      hosts:
+        <HOST_IP_2>:
+```
+而我們的 `ansible.cfg` 會增加以下兩行選項：
+```
++ remote_user = <USER_NAME>
++ remote_password = <PASSWORD>
+```
+
+## 總結
+本篇文章介紹了 Inventory 常見的用法，並且粗略的介紹了 `ansible.cfg` 與模組的概念，在之後的篇章中，我們會更深入的介紹這些概念，逐步的建構第一份 Ansible playbooks ：）

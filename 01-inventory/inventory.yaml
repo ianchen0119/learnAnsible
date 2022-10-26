@@ -1,9 +1,18 @@
 vmGroup:
-  hosts:
-    vm01:
-      ansible_host: <HOST_IP>
-      ansible_port: 22
-      ansible_user: <USER>
-      ansible_password: <PASSWORD>
-      ansible_private_key_file: <FILE>
-
+  children:
+    webservers:
+      hosts:
+        vm01:
+          ansible_host: <HOST_IP_1>
+          ansible_port: 22
+          ansible_user: <USER>
+          ansible_password: <PASSWORD>
+          ansible_private_key_file: <FILE>
+    dbs:
+      hosts:
+        db01:
+          ansible_host: <HOST_IP_2>
+          ansible_port: 22
+          ansible_user: <USER>
+          ansible_password: <PASSWORD>
+          ansible_private_key_file: <FILE>
