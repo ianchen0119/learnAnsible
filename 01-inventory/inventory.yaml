@@ -1,0 +1,9 @@
+vmGroup:
+  hosts:
+    vm01:
+      ansible_host: <HOST_IP>
+      ansible_port: 22
+      ansible_user: <USER>
+      ansible_password: <PASSWORD>
+      ansible_private_key_file: <FILE>
+
